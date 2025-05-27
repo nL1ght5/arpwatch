@@ -71,7 +71,6 @@ static void print_help(const char *progname) {
         "  neighbor entries as needed. Only ARP reply packets are processed (filtered by BPF).\n"
         "  Use -v for additional packet information on each ARP reply.\n"
         "  Use --debug to enable debug logs at runtime.\n"
-        "  You can toggle debug output at runtime by entering 'debug on' or 'debug off' on stdin.\n"
     , progname);
 }
 
@@ -332,21 +331,6 @@ static void process_arp_packet(const char *ifname, int verbose, const uint8_t *b
     }
 }
 
-static void *stdin_debug_monitor(void *arg) {
-    char line[256];
-    (void)arg;
-    while (fgets(line, sizeof(line), stdin) != NULL) {
-        if (strncmp(line, "debug on", 8) == 0) {
-            debug_enabled = 1;
-            fprintf(stderr, "[DEBUG] Debug output enabled (runtime)\n");
-        } else if (strncmp(line, "debug off", 9) == 0) {
-            debug_enabled = 0;
-            fprintf(stderr, "[DEBUG] Debug output disabled (runtime)\n");
-        }
-    }
-    return NULL;
-}
-
 int main(int argc, char *argv[]) {
     struct ifreq ifr;
     struct sockaddr_ll socket_ll;
@@ -397,12 +381,7 @@ int main(int argc, char *argv[]) {
 
     LOG(LOG_DEBUG, "Program started with interface: %s, verbose: %d", ifname, verbose);
 
-    pthread_t monitor_thread;
-    if (pthread_create(&monitor_thread, NULL, stdin_debug_monitor, NULL) != 0) {
-        LOG(LOG_WARN, "Could not create debug monitor thread, runtime debug toggle will not be available");
-    } else {
-        pthread_detach(monitor_thread);
-    }
+    // Removed debug monitor thread for stdin
 
     sockfd = setup_raw_socket(ifname, &ifr, &socket_ll);
     if (sockfd < 0) {
